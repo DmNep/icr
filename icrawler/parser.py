@@ -8,57 +8,57 @@ from .utils import ThreadPool
 
 
 class Parser(ThreadPool):
-    """Base class for parser.
+    """Базовый класс для анализатора.
 
-    A thread pool of parser threads, in charge of downloading and parsing pages,
-    extracting file urls and put them into the input queue of downloader.
+    Пул потоков парсеров, отвечающий за страницы загрузки и анализа,
+    Извлечение URL -адресов файлов и поместите их в очередь ввода загрузчика.
 
-    Attributes:
-        global_signal: A Signal object for cross-module communication.
-        session: A requests.Session object.
-        logger: A logging.Logger object used for logging.
-        threads: A list storing all the threading.Thread objects of the parser.
-        thread_num: An integer indicating the number of threads.
-        lock: A threading.Lock object.
+    Атрибуты:
+        global_signal:Сигнальный объект для передачи передачи модулей.
+        session:Объект запросов.
+        logger: Hearging.logger объект, используемый для ведения журнала.
+        threads: Список, хранящий все потоки.
+        thread_num: Целое число, указывающее количество потоков.
+        lock: Объект потока.lock.
     """
 
     def __init__(self, thread_num, signal, session):
-        """Init Parser with some shared variables."""
+        """Инициативный анализатор с некоторыми общими переменными."""
         super().__init__(thread_num, name="parser")
         self.signal = signal
         self.session = session
 
     def parse(self, response, **kwargs):
-        """Parse a page and extract image urls, then put it into task_queue.
+        """Распокачивайте страницу и извлеките URL -адреса изображения, затем поместите ее в task_queue.
 
-        This method should be overridden by users.
+        Этот метод должен быть переопределен пользователями.
 
         :Example:
 
         >>> task = {}
-        >>> self.output(task)  # doctest: +SKIP
+        >>> self.output(task)  # Доктор: +пропустить
         """
         raise NotImplementedError
 
     def worker_exec(self, queue_timeout=2, req_timeout=5, max_retry=3, **kwargs):
-        """Target method of workers.
+        """Целевой метод работников.
 
-        Firstly download the page and then call the :func:`parse` method.
-        A parser thread will exit in either of the following cases:
+        Сначала загрузите страницу, а затем позвоните в метод: func: `parse`.
+        Поток анализатора выйдет в любой из следующих случаев:
 
-        1. All feeder threads have exited and the ``url_queue`` is empty.
-        2. Downloaded image number has reached required number.
+        1. Все подачи фидеров вышли, а `` url_queue`` - пуст.
+        2. Загруженный номер изображения достиг необходимого номера.
 
         Args:
-            queue_timeout (int): Timeout of getting urls from ``url_queue``.
-            req_timeout (int): Timeout of making requests for downloading pages.
-            max_retry (int): Max retry times if the request fails.
-            **kwargs: Arguments to be passed to the :func:`parse` method.
+            queue_timeout (int):Тайм -аут получения URL -адресов от `` url_queue``.
+            req_timeout (int):Тайм -аут для получения запросов на загрузку страниц.
+            max_retry (int):Максимальное время повторения, если запрос не удастся.
+            **kwargs: Аргументы, которые должны быть переданы методу: func: `parse`.
         """
         while True:
             if self.signal.get("reach_max_num"):
                 self.logger.info(
-                    "downloaded image reached max num, thread %s " "is ready to exit", current_thread().name
+                    "Загруженное изображение достигли максимального номера, thread %s " "is ready to exit", current_thread().name
                 )
                 break
             # get the page url
@@ -66,16 +66,16 @@ class Parser(ThreadPool):
                 url = self.in_queue.get(timeout=queue_timeout)
             except queue.Empty:
                 if self.signal.get("feeder_exited"):
-                    self.logger.info("no more page urls for thread %s to parse", current_thread().name)
+                    self.logger.info("Больше нет страниц URL -адреса для потока %s посылка", current_thread().name)
                     break
                 else:
-                    self.logger.info("%s is waiting for new page urls", current_thread().name)
+                    self.logger.info("%s ждет новых URL -адресов страницы", current_thread().name)
                     continue
             except:
-                self.logger.error("exception in thread %s", current_thread().name)
+                self.logger.error("Исключение в потоке %s", current_thread().name)
                 continue
             else:
-                self.logger.debug(f"start fetching page {url}")
+                self.logger.debug(f"Начните получение страницы {url}")
             # fetch and parse the page
             retry = max_retry
             while retry > 0:
@@ -84,28 +84,28 @@ class Parser(ThreadPool):
                     response = self.session.get(url, timeout=req_timeout, headers={"Referer": base_url})
                 except Exception as e:
                     self.logger.error(
-                        "Exception caught when fetching page %s, " "error: %s, remaining retry times: %d",
+                        "Исключение поймано при получении страницы %s, " "ошибка: %s, оставшиеся время повторения: %d",
                         url,
                         e,
                         retry - 1,
                     )
                 else:
-                    self.logger.info(f"parsing result page {url}")
+                    self.logger.info(f"Страница результатов анализа {url}")
                     for task in self.parse(response, **kwargs):
                         while not self.signal.get("reach_max_num"):
                             try:
                                 if isinstance(task, dict):
                                     self.output(task, timeout=1)
                                 elif isinstance(task, str):
-                                    # this case only work for GreedyCrawler,
-                                    # which need to feed the url back to
-                                    # url_queue, dirty implementation
+                                    # Этот случай работает только для GreedyCrawler,
+                                    # которые должны вернуть URL обратно в
+                                    # url_queue, грязная реализация
                                     self.input(task, timeout=1)
                             except queue.Full:
                                 time.sleep(1)
                             except Exception as e:
                                 self.logger.error(
-                                    "Exception caught when put task %s into " "queue, error: %s", task, url
+                                    "Исключение поймано, когда задание положила %s в " "очередь, ошибка: %s", task, url
                                 )
                             else:
                                 break
@@ -115,7 +115,7 @@ class Parser(ThreadPool):
                     break
                 finally:
                     retry -= 1
-        self.logger.info(f"thread {current_thread().name} exit")
+        self.logger.info(f"нить {current_thread().name} Выход")
 
     def __exit__(self):
-        logging.info("all parser threads exited")
+        logging.info("Все выхода паризонов выходят")
