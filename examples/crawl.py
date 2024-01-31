@@ -8,7 +8,7 @@ from icrawler.builtin import (
     FlickrImageCrawler,
     GoogleImageCrawler,
     GreedyImageCrawler,
-    UrlListCrawler,
+    UrlListCrawler, 
 )
 
 
