@@ -1,4 +1,4 @@
-"""Crawler base class"""
+"""Класс базового класса"""
 
 import logging
 import sys
@@ -14,16 +14,16 @@ from .utils import ProxyPool, Session, Signal
 
 
 class Crawler:
-    """Base class for crawlers
+    """Базовый класс для сканеров
 
-    Attributes:
-        session (Session): A Session object.
-        feeder (Feeder): A Feeder object.
-        parser (Parser): A Parser object.
-        downloader (Downloader): A Downloader object.
-        signal (Signal): A Signal object shared by all components,
-                         used for communication among threads
-        logger (Logger): A Logger object used for logging
+    Атрибуты:
+        session (Session):Объект сеанса.
+        feeder (Feeder):Объект подачи.
+        parser (Parser):Объект анализатора.
+        downloader (Downloader):Объект загрузчика.
+        signal (Signal):Объект сигнала, разделяемый всеми компонентами,
+                         используется для связи между потоками
+        logger (Logger):Объект регистрации, используемый для регистрации
     """
 
     def __init__(
@@ -40,17 +40,17 @@ class Crawler:
         extra_parser_args=None,
         extra_downloader_args=None,
     ):
-        """Init components with class names and other arguments.
+        """Компоненты init с именами классов и другими аргументами.
 
         Args:
-            feeder_cls: class of feeder
-            parser_cls: class of parser
-            downloader_cls: class of downloader.
-            feeder_threads: thread number used by feeder
-            parser_threads: thread number used by parser
-            downloader_threads: thread number used by downloader
-            storage (dict or BaseStorage): storage backend configuration
-            log_level: logging level for the logger
+            feeder_cls: Класс подачи
+            parser_cls: класс анализатора
+            downloader_cls: Класс загрузчика.
+            feeder_threads: номер потока, используемый в подаче
+            parser_threads: номер потока, используемый парсером
+            downloader_threads:номер потока, используемый загрузчиком
+            storage (dict or BaseStorage): Конфигурация бэкэнд хранения
+            log_level:Уровень регистрации для регистрации
         """
 
         self.set_logger(log_level)
@@ -71,7 +71,7 @@ class Crawler:
         self.feeder.connect(self.parser).connect(self.downloader)
 
     def set_logger(self, log_level=logging.INFO):
-        """Configure the logger with log_level."""
+        """Настройте журнал с помощью log_level."""
         logging.basicConfig(
             format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=log_level, stream=sys.stderr
         )
@@ -79,21 +79,21 @@ class Crawler:
         logging.getLogger("requests").setLevel(logging.WARNING)
 
     def init_signal(self):
-        """Init signal
+        """Инициатор сигнал
 
-        3 signals are added: ``feeder_exited``, ``parser_exited`` and
+        Добавлены 3 сигнала: ``feeder_exited``, ``parser_exited`` и
         ``reach_max_num``.
         """
         self.signal = Signal()
         self.signal.set(feeder_exited=False, parser_exited=False, reach_max_num=False)
 
     def set_storage(self, storage):
-        """Set storage backend for downloader
+        """Установите бэкэнд хранения для загрузчика
 
-        For full list of storage backend supported, please see :mod:`storage`.
+       Для получения полного списка поддерживаемого бэкэнда хранения, пожалуйста, смотрите:mod:`storage`.
 
         Args:
-            storage (dict or BaseStorage): storage backend configuration or instance
+            storage (dict or BaseStorage): Конфигурация бэкэнд или экземпляра хранения
 
         """
         if isinstance(storage, BaseStorage):
@@ -107,30 +107,29 @@ class Crawler:
                 try:
                     backend_cls = import_module(storage["backend"])
                 except ImportError:
-                    self.logger.error("cannot find backend module %s", storage["backend"])
+                    self.logger.error("Не могу найти модуль бэкэнда %s", storage["backend"])
                     sys.exit()
             kwargs = storage.copy()
             del kwargs["backend"]
             self.storage = backend_cls(**kwargs)
         else:
-            raise TypeError('"storage" must be a storage object or dict')
+            raise TypeError('"хранилище "должно быть объектом хранения или дикта')
 
     def set_proxy_pool(self, pool=None):
-        """Construct a proxy pool
+        """Построить прокси -бассейн
 
-        By default no proxy is used.
-
+       По умолчанию прокси -сервер не используется.
         Args:
-            pool (ProxyPool, optional): a :obj:`ProxyPool` object
+            pool (ProxyPool, optional): a :obj:`ProxyPool` объект
         """
         self.proxy_pool = ProxyPool() if pool is None else pool
 
     def set_session(self, headers=None):
-        """Init session with default or custom headers
+        """IСеанс NIT с заголовками по умолчанию или пользовательским
 
         Args:
-            headers: A dict of headers (default None, thus using the default
-                     header to init the session)
+            headers: DICT из заголовков (по умолчанию нет, таким образом, используя по умолчанию
+                     Заголовок TO INIT The Session)
         """
         if headers is None:
             headers = {
@@ -141,21 +140,21 @@ class Crawler:
                 )
             }
         elif not isinstance(headers, dict):
-            raise TypeError('"headers" must be a dict object')
+            raise TypeError('"Заголовки "должны быть объектом DICT')
 
         self.session = Session(self.proxy_pool)
         self.session.headers.update(headers)
 
     def crawl(self, feeder_kwargs=None, parser_kwargs=None, downloader_kwargs=None):
-        """Start crawling
+        """Начать ползать
 
-        This method will start feeder, parser and download and wait
-        until all threads exit.
+        Этот метод запустит фидер, анализатор и загрузку и ждать
+        пока все нити не выйдут.
 
         Args:
-            feeder_kwargs (dict, optional): Arguments to be passed to ``feeder.start()``
-            parser_kwargs (dict, optional): Arguments to be passed to ``parser.start()``
-            downloader_kwargs (dict, optional): Arguments to be passed to
+            feeder_kwargs (dict, optional): Аргументы, которые должны быть переданы в `fired.start ()` ``
+            parser_kwargs (dict, optional): Аргументы, которые должны быть переданы `` parser.start () `` `
+            downloader_kwargs (dict, optional): Аргументы, которые должны быть переданы
                 ``downloader.start()``
         """
         self.signal.reset()
@@ -165,13 +164,13 @@ class Crawler:
         parser_kwargs = {} if parser_kwargs is None else parser_kwargs
         downloader_kwargs = {} if downloader_kwargs is None else downloader_kwargs
 
-        self.logger.info("starting %d feeder threads...", self.feeder.thread_num)
+        self.logger.info("starting %d Фидер...", self.feeder.thread_num)
         self.feeder.start(**feeder_kwargs)
 
-        self.logger.info("starting %d parser threads...", self.parser.thread_num)
+        self.logger.info("starting %d Диаризовательские нити...", self.parser.thread_num)
         self.parser.start(**parser_kwargs)
 
-        self.logger.info("starting %d downloader threads...", self.downloader.thread_num)
+        self.logger.info("starting %d потоки загрузчиков...", self.downloader.thread_num)
         self.downloader.start(**downloader_kwargs)
 
         while True:
@@ -190,4 +189,4 @@ class Crawler:
         if not self.downloader.in_queue.empty():
             self.downloader.clear_buffer(True)
 
-        self.logger.info("Crawling task done!")
+        self.logger.info("Задача ползания выполнена!")
